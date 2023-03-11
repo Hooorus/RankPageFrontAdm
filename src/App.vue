@@ -5,8 +5,10 @@
     <span>Welcome to RankPage Backend</span>
     <br/>
     <br/>
-    <a-divider>修改标题区</a-divider>
+    <a-divider>修改区</a-divider>
     <span>当前标题名称: {{ this.current_title }}</span>
+    <br/>
+    <span>当前单人最大投票量: {{ this.current_vote }}</span>
     <br/>
     <br/>
     <a-input-search
@@ -15,6 +17,14 @@
         style="width: 530px"
         size="large"
         @search="setTitle"
+    />
+    <br/>
+    <a-input-search
+        placeholder="请输入需要修改的单人最大投票量"
+        enter-button="修改投票"
+        style="width: 530px"
+        size="large"
+        @search="setVote"
     />
     <br/>
     <a-divider>文件上传区</a-divider>
@@ -46,12 +56,12 @@
     </div>
     <a-divider>数据显示区</a-divider>
     <a-input-search
-        placeholder="请输入所查询的赛道名"
+        placeholder="请输入所查询的赛道名，清空再查询为查询全部"
         enter-button="查询"
-        style="width: 250px"
+        style="width: 400px"
         @search="queryResultByTrack"
     />
-    <a-table :data-source="tableData" :columns="columns">
+    <a-table :data-source="tableData" :bordered=true :pagination="false" :columns="columns">
       <div
           slot="filterDropdown"
           slot-scope="{ setSelectedKeys, selectedKeys, confirm, clearFilters, column }"
@@ -115,7 +125,9 @@ export default {
   data() {
     return {
       default_title_name: "",
+      default_vote: "",
       current_title: "",
+      current_vote: "",
       track: "",
       fileList: [],
       uploading: false,
@@ -197,6 +209,9 @@ export default {
   created() {
     this.init();
   },
+  mounted() {
+    this.getVote();
+  },
   methods: {
     //表格方法
     handleSearch(selectedKeys, confirm, dataIndex) {
@@ -210,22 +225,44 @@ export default {
       this.searchText = '';
     },
 
-    //结果查询
-    async queryResultByTrack(value) {
-      const formData = new FormData();
-      formData.append('track', value)
+    //查询全部
+    async queryResultAll() {
       await Axios.request({
-        url: "http://49.235.113.96:8099/rank_page/backend/get_people_by_track",
+        url: "http://49.235.113.96:8099/rank_page/backend/get_people_all",
         method: 'POST',
-        data: formData,
       }).then(res => {
         this.tableData = res.data.data
         console.log(res.data)
         //结果集处理
         if (res.data.status != 200) {
           this.$message.error('查询失败！');
+        } else {
+          this.$message.success('查询成功！');
         }
       })
+    },
+    //结果查询
+    async queryResultByTrack(value) {
+      if (value == '' || value == ' ') {
+        this.queryResultAll()
+      } else {
+        const formData = new FormData();
+        formData.append('track', value.trim())
+        await Axios.request({
+          url: "http://49.235.113.96:8099/rank_page/backend/get_people_by_track",
+          method: 'POST',
+          data: formData,
+        }).then(res => {
+          this.tableData = res.data.data
+          console.log(res.data)
+          //结果集处理
+          if (res.data.status != 200) {
+            this.$message.error('查询失败！');
+          } else {
+            this.$message.success('查询成功！');
+          }
+        })
+      }
     },
     setTrack(value) {
       this.track = value
@@ -287,8 +324,25 @@ export default {
         this.current_title = res.data.data
       })
     },
+    async getVote() {
+      //组装参数
+      let requestParam = new FormData()
+      requestParam.append("vote_id", "vote_number")
+      await Axios.request({
+        method: 'GET',
+        url: 'http://49.235.113.96:8099/rank_page/front/get_vote_number?vote_id=vote_number',
+        data: requestParam,
+        headers: {
+          "Content-Type": "multipart/form-data"
+        }
+      }).then(res => {
+        console.log('res.data=>', res.data.data);
+        this.current_vote = res.data.data
+      })
+    },
     //设置标题
     async setTitle(value) {
+      value = value.trim()
       console.log(value);
       this.default_title_name = {
         "id": "title_name",
@@ -298,6 +352,28 @@ export default {
         method: 'POST',
         url: "http://49.235.113.96:8099/rank_page/backend/set_title_name",
         data: this.default_title_name,
+      }).then(res => {
+        console.log('res.data=>', res.data.data);
+        if (res.data.status == 200) {
+          this.$message.success(res.data.data);
+        } else {
+          this.$message.error(res.data.data);
+        }
+        this.init();
+      })
+    },
+    //设置标题
+    async setVote(value) {
+      value = value.trim()
+      console.log(value);
+      this.default_vote = {
+        "id": "vote_number",
+        "limitMax": value
+      };
+      await Axios.request({
+        method: 'POST',
+        url: "http://49.235.113.96:8099/rank_page/backend/set_vote_number",
+        data: this.default_vote,
       }).then(res => {
         console.log('res.data=>', res.data.data);
         if (res.data.status == 200) {
