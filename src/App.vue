@@ -382,6 +382,7 @@ export default {
           this.$message.error(res.data.data);
         }
         this.init();
+        this.getVote();
       })
     },
   },
