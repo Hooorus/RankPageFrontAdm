@@ -1,9 +1,7 @@
 <template>
   <div id="app">
     <br/>
-    <br/>
     <span>Welcome to RankPage Backend</span>
-    <br/>
     <br/>
     <a-divider>修改区</a-divider>
     <span>当前标题名称: {{ this.current_title }}</span>
@@ -28,7 +26,6 @@
     />
     <br/>
     <a-divider>文件上传区</a-divider>
-    ①
     <a-input-search
         placeholder="请输入上传表格的赛道名"
         enter-button="保存"
@@ -37,9 +34,8 @@
     />
     <br/>
     <div class="clearfix">
-      ②
       <a-upload :file-list="fileList" :remove="handleRemove" :before-upload="beforeUpload">
-        <a-button>
+        <a-button :disabled="upload_disabled">
           <a-icon type="upload"/>
           上传excel名单(从头列开始向下排序)
         </a-button>
@@ -61,6 +57,30 @@
         style="width: 400px"
         @search="queryResultByTrack"
     />
+    &nbsp;
+    <a-input-search
+        placeholder="请输入所删除的赛道名，清空再删除为删除全部"
+        style="width: 400px"
+        @search="deleteResultByTrack"
+    >
+      <a-button slot="enterButton" type="danger">
+        删除
+      </a-button>
+    </a-input-search>
+    <a-modal
+        title="请确认您的操作"
+        :visible="alert_visible"
+        :confirm-loading="confirmLoading"
+        @ok="handleOk"
+        @cancel="handleCancel"
+    >
+      <p>{{ ModalText }}</p>
+      <a-input-search placeholder="删除数据" @search="changeDeleteInputConfirm">
+        <a-button slot="enterButton" type="primary">
+          保存
+        </a-button>
+      </a-input-search>
+    </a-modal>
     <a-table :data-source="tableData" :bordered=true :pagination="false" :columns="columns">
       <div
           slot="filterDropdown"
@@ -124,6 +144,15 @@ import Axios from "axios";
 export default {
   data() {
     return {
+      changeDeleteInputStandardText: "删除数据",
+      changeDeleteInputConfirmText: "",
+      ModalText: '请在输入框内填写如下内容：删除数据',
+      alert_visible: false,
+      confirmLoading: false,
+
+      upload_disabled: true,
+      deleteTrack: "",
+
       default_title_name: "",
       default_vote: "",
       current_title: "",
@@ -213,6 +242,49 @@ export default {
     this.getVote();
   },
   methods: {
+    // ————————————删除弹窗警告区域——————————
+    showModal() {
+      this.alert_visible = true;
+    },
+    async handleOk(value) {
+      if (this.changeDeleteInputStandardText === this.changeDeleteInputConfirmText) {
+        this.confirmLoading = true;
+        // ————————————发删除请求————————————
+        console.log("deleteTrack: " + this.deleteTrack)
+        const formData = new FormData();
+        formData.append('track', this.deleteTrack)
+        await Axios.request({
+          url: "http://49.235.113.96:8099/rank_page/backend/delete_people_by_track",
+          method: 'POST',
+          data: formData,
+        }).then(res => {
+          this.tableData = res.data.data
+          console.log(res.data)
+          //结果集处理
+          if (res.data.status == 500) {
+            this.$message.error('删除失败！');
+          } else if (res.data.status == 200) {
+            this.$message.success('删除成功！');
+          }
+        })
+        // ————————————延时————————————
+        setTimeout(() => {
+          this.alert_visible = false;
+          this.confirmLoading = false;
+        }, 1000);
+      } else {
+        this.$message.error("请正确填写")
+      }
+    },
+    handleCancel(e) {
+      console.log('Clicked cancel button');
+      this.alert_visible = false;
+    },
+    changeDeleteInputConfirm(e) {
+      this.changeDeleteInputConfirmText = e;
+      console.log(this.changeDeleteInputConfirmText)
+    },
+    // ————————————删除弹窗警告区域——————————
     //表格方法
     handleSearch(selectedKeys, confirm, dataIndex) {
       confirm();
@@ -264,9 +336,27 @@ export default {
         })
       }
     },
+    //删除赛道
+    async deleteResultByTrack(value) {
+      //删除赛道
+      if (value.trim() == null || value.trim() == "") {
+        this.$message.error("请输入有效赛道名")
+      } else {
+        this.deleteTrack = value.trim()
+        this.showModal()
+      }
+    },
+
     setTrack(value) {
-      this.track = value
-      this.$message.success("保存成功！" + this.track);
+      if (value.trim() == "" || value.trim() == null) {
+        this.$message.error("请输入文字！");
+      } else {
+        this.track = value
+        this.$message.success("保存成功！" + this.track);
+        if (this.upload_disabled === true) {
+          this.upload_disabled = false
+        }
+      }
     },
 
     //文件上传
@@ -306,7 +396,6 @@ export default {
       })
       this.uploading = false;
     },
-
     //初始化查询标题
     async init() {
       //组装参数
