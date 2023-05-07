@@ -140,6 +140,7 @@
 <script>
 
 import Axios from "axios";
+import api from "@/api/index"
 
 export default {
   data() {
@@ -254,7 +255,7 @@ export default {
         const formData = new FormData();
         formData.append('track', this.deleteTrack)
         await Axios.request({
-          url: "http://49.235.113.96:8099/rank_page/backend/delete_people_by_track",
+          url: api.prefixURL + api.backendURL + api.deletePeopleByTrack,
           method: 'POST',
           data: formData,
         }).then(res => {
@@ -300,7 +301,7 @@ export default {
     //查询全部
     async queryResultAll() {
       await Axios.request({
-        url: "http://49.235.113.96:8099/rank_page/backend/get_people_all",
+        url: api.prefixURL + api.backendURL + api.getPeopleAll,
         method: 'POST',
       }).then(res => {
         this.tableData = res.data.data
@@ -321,7 +322,7 @@ export default {
         const formData = new FormData();
         formData.append('track', value.trim())
         await Axios.request({
-          url: "http://49.235.113.96:8099/rank_page/backend/get_people_by_track",
+          url: api.prefixURL + api.backendURL + api.getPeopleByTrack,
           method: 'POST',
           data: formData,
         }).then(res => {
@@ -383,15 +384,24 @@ export default {
       // You can use any AJAX library you like
       console.log(formData)
       await Axios.request({
-        url: 'http://49.235.113.96:8099/rank_page/backend/upload_excel',
+        url: api.prefixURL + api.backendURL + api.uploadExcel,
         method: 'POST',
         data: formData,
       }).then(res => {
         console.log('res.data=>', res.data.data);
         if (res.data.status == 200) {
-          this.$message.success(res.data.data);
+          this.$notification.success({
+            message: "文件上传成功！",
+            description: "接下来将自动刷新页面，请勿操作！"
+          })
+          window.setTimeout(function () {
+            window.location.reload();
+          }, 2000)
         } else {
-          this.$message.error(res.data.data);
+          this.$notification.success({
+            message: "文件上传失败！请刷新页面重新填写！",
+            description: res.data.msg
+          })
         }
       })
       this.uploading = false;
@@ -403,7 +413,7 @@ export default {
       requestParam.append("title_id", "title_name")
       await Axios.request({
         method: 'GET',
-        url: 'http://49.235.113.96:8099/rank_page/front/get_title_name?title_id=title_name',
+        url: api.prefixURL + api.frontURL + api.getTitleName,
         data: requestParam,
         headers: {
           "Content-Type": "multipart/form-data"
@@ -419,7 +429,7 @@ export default {
       requestParam.append("vote_id", "vote_number")
       await Axios.request({
         method: 'GET',
-        url: 'http://49.235.113.96:8099/rank_page/front/get_vote_number?vote_id=vote_number',
+        url: api.prefixURL + api.frontURL + api.getVoteNumber,
         data: requestParam,
         headers: {
           "Content-Type": "multipart/form-data"
@@ -439,7 +449,7 @@ export default {
       };
       await Axios.request({
         method: 'POST',
-        url: "http://49.235.113.96:8099/rank_page/backend/set_title_name",
+        url: api.prefixURL + api.backendURL + api.setTitleName,
         data: this.default_title_name,
       }).then(res => {
         console.log('res.data=>', res.data.data);
@@ -461,7 +471,7 @@ export default {
       };
       await Axios.request({
         method: 'POST',
-        url: "http://49.235.113.96:8099/rank_page/backend/set_vote_number",
+        url: api.prefixURL + api.backendURL + api.setVoteNumber,
         data: this.default_vote,
       }).then(res => {
         console.log('res.data=>', res.data.data);
