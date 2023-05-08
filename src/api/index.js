@@ -10,4 +10,6 @@ export default {
     getVoteNumber: "get_vote_number?vote_id=vote_number",
     setTitleName: "set_title_name",
     setVoteNumber: "set_vote_number",
+    setPeopleScore: "set_people_score",
+    getTrackAll: "get_track_all",
 }
